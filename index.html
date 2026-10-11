@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="小手机">
+<meta name="theme-color" content="#000000">
+<title>小手机</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: #000;
+    color: #fff;
+    font-family: -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    overflow: hidden;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  #date {
+    font-size: 23px;
+    font-weight: 500;
+    letter-spacing: 3px;
+    color: #f2f2f7;
+    opacity: 0.92;
+    margin-bottom: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  #time {
+    font-size: 78px;
+    font-weight: 200;
+    letter-spacing: 3px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 28px rgba(255, 255, 255, 0.16);
+  }
+  @media (max-width: 380px) {
+    #time { font-size: 68px; }
+    #date { font-size: 21px; }
+  }
+</style>
+</head>
+<body>
+  <div id="date"></div>
+  <div id="time"></div>
+<script>
+  function pad(n) { return String(n).padStart(2, "0"); }
+  var WEEK = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
+  function tick() {
+    var d = new Date();
+    document.getElementById("date").textContent =
+      (d.getMonth() + 1) + "月" + d.getDate() + "日 " + WEEK[d.getDay()];
+    document.getElementById("time").textContent =
+      pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
+  }
+  tick();
+  setInterval(tick, 1000);
+</script>
+</body>
+</html>

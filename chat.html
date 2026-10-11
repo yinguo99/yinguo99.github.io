@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang='zh-CN'>
+<head>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1, viewport-fit=cover'>
+<meta name='apple-mobile-web-app-capable' content='yes'>
+<meta name='apple-mobile-web-app-status-bar-style' content='black'>
+<meta name='apple-mobile-web-app-title' content='聊天台'>
+<meta name='theme-color' content='#0a0a0c'>
+<title>聊天台</title>
+<style>
+  :root{
+    --bg:#0a0a0c; --panel:#141418; --line:#242430;
+    --text:#f2f2f5; --dim:#8b8b99; --me:#f2f2f5;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;margin:0}
+  body{
+    background:var(--bg);color:var(--text);
+    font:16px/1.65 -apple-system,'PingFang SC','Helvetica Neue',Arial,sans-serif;
+    display:flex;flex-direction:column;overscroll-behavior:none;
+  }
+  header{
+    flex:none;display:flex;align-items:center;gap:8px;
+    padding:12px 14px;padding-top:calc(12px + env(safe-area-inset-top));
+    border-bottom:1px solid var(--line);position:sticky;top:0;
+    background:rgba(10,10,12,.94);backdrop-filter:blur(10px);z-index:4;
+  }
+  header .t{flex:1;font-size:17px;font-weight:600;letter-spacing:1px}
+  header button{
+    background:none;border:1px solid var(--line);color:var(--dim);
+    border-radius:999px;padding:6px 12px;font-size:13px;
+  }
+  main{
+    flex:1;overflow-y:auto;padding:16px 14px 10px;
+    display:flex;flex-direction:column;gap:12px;
+  }
+  .row{display:flex}
+  .row.me{justify-content:flex-end}
+  .bubble{
+    max-width:84%;padding:10px 13px;border-radius:16px;
+    white-space:pre-wrap;word-break:break-word;
+  }
+  .row.ai .bubble{background:var(--panel);border:1px solid var(--line);border-bottom-left-radius:5px}
+  .row.me .bubble{background:var(--me);color:#0a0a0c;border-bottom-right-radius:5px}
+  .think{
+    max-width:84%;margin-bottom:6px;font-size:13px;color:var(--dim);
+    background:#101014;border:1px dashed var(--line);border-radius:12px;
+    padding:8px 11px;white-space:pre-wrap;
+  }
+  .err{max-width:84%;font-size:13px;color:#ff8a8a;white-space:pre-wrap;margin-top:6px}
+  .tip{color:var(--dim);font-size:14px;text-align:center;padding:22px 12px;line-height:1.8}
+  footer{
+    flex:none;display:flex;align-items:flex-end;gap:8px;
+    padding:10px 12px;padding-bottom:calc(10px + env(safe-area-inset-bottom));
+    border-top:1px solid var(--line);background:rgba(10,10,12,.96);
+  }
+  textarea{
+    flex:1;resize:none;max-height:120px;background:var(--panel);color:var(--text);
+    border:1px solid var(--line);border-radius:14px;padding:10px 12px;
+    font:inherit;line-height:1.5;outline:none;
+  }
+  textarea:focus{border-color:#3a3a48}
+  #send{
+    flex:none;width:48px;height:44px;border:none;border-radius:14px;
+    background:var(--me);color:#0a0a0c;font-size:15px;font-weight:600;
+  }
+  #send:disabled{opacity:.35}
+  .sheet{position:fixed;inset:0;background:rgba(0,0,0,.62);display:none;align-items:flex-end;z-index:20}
+  .sheet.on{display:flex}
+  .sheet .box{
+    width:100%;background:var(--panel);border-radius:18px 18px 0 0;
+    padding:18px 16px;padding-bottom:calc(18px + env(safe-area-inset-bottom));
+  }
+  .sheet h3{margin:0 0 14px;font-size:15px;font-weight:600}
+  .f{margin-bottom:12px}
+  .f label{display:block;font-size:12px;color:var(--dim);margin-bottom:5px}
+  .f input{
+    width:100%;background:#0e0e12;color:var(--text);
+    border:1px solid var(--line);border-radius:10px;
+    padding:10px 11px;font:inherit;font-size:14px;outline:none;
+  }
+  .f input:focus{border-color:#3a3a48}
+  .acts{display:flex;gap:10px;margin-top:16px}
+  .acts button{
+    flex:1;padding:11px;border-radius:12px;font:inherit;
+    border:1px solid var(--line);background:none;color:var(--text);
+  }
+  .acts .p{background:var(--me);color:#0a0a0c;border-color:var(--me);font-weight:600}
+  .note{font-size:12px;color:var(--dim);line-height:1.7;margin-top:12px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class='t'>聊天台</div>
+  <button id='clear'>清空</button>
+  <button id='set'>设置</button>
+</header>
+
+<main id='list'></main>
+
+<footer>
+  <textarea id='input' rows='1' placeholder='说点什么'></textarea>
+  <button id='send'>发</button>
+</footer>
+
+<div class='sheet' id='sheet'>
+  <div class='box'>
+    <h3>接口设置</h3>
+    <div class='f'><label>接口地址</label><input id='fEndpoint' placeholder='https://api.deepseek.com/chat/completions'></div>
+    <div class='f'><label>模型</label><input id='fModel' placeholder='deepseek-chat'></div>
+    <div class='f'><label>API Key</label><input id='fKey' type='password' placeholder='sk-...'></div>
+    <div class='acts'>
+      <button id='cancel'>取消</button>
+      <button class='p' id='save'>保存</button>
+    </div>
+    <div class='note'>
+      钥匙在 platform.deepseek.com 里生成，充十块能用很久。
+      它只写进你这台设备的浏览器，不会跟着网页发出去。
+      接口地址那栏不用动，除非以后你想换成别家的模型。
+    </div>
+  </div>
+</div>
+
+<script>
+var CFG='chat.cfg', HIS='chat.his';
+var listEl=document.getElementById('list');
+var inputEl=document.getElementById('input');
+var sendEl=document.getElementById('send');
+var sheetEl=document.getElementById('sheet');
+var fEndpoint=document.getElementById('fEndpoint');
+var fModel=document.getElementById('fModel');
+var fKey=document.getElementById('fKey');
+
+var cfg=Object.assign({
+  endpoint:'https://api.deepseek.com/chat/completions',
+  model:'deepseek-chat',
+  key:''
+}, read(CFG, {}));
+var history=read(HIS, []);
+var busy=false;
+
+function read(k, d){
+  try{ return JSON.parse(localStorage.getItem(k)) || d }catch(e){ return d }
+}
+function write(k, v){
+  try{ localStorage.setItem(k, JSON.stringify(v)) }catch(e){}
+}
+
+function tipOff(){
+  var t=document.querySelector('.tip');
+  if(t) t.remove();
+}
+
+function bubble(role, text){
+  var row=document.createElement('div');
+  row.className='row ' + (role==='user' ? 'me' : 'ai');
+  var b=document.createElement('div');
+  b.className='bubble';
+  b.textContent=text || '';
+  row.appendChild(b);
+  listEl.appendChild(row);
+  return b;
+}
+
+function draw(){
+  listEl.innerHTML='';
+  if(!history.length){
+    var t=document.createElement('div');
+    t.className='tip';
+    t.textContent='这儿还空着。先去右上角设置里把地址和钥匙填上，再随便说一句。';
+    listEl.appendChild(t);
+  }
+  history.forEach(function(m){ bubble(m.role, m.content) });
+  toEnd();
+}
+
+function toEnd(){ listEl.scrollTop=listEl.scrollHeight }
+
+function grow(){
+  inputEl.style.height='auto';
+  inputEl.style.height=Math.min(inputEl.scrollHeight, 120) + 'px';
+}
+
+async function send(){
+  var text=inputEl.value.trim();
+  if(!text || busy) return;
+  if(!cfg.key || !cfg.endpoint || !cfg.model){ openSheet(); return }
+
+  busy=true; sendEl.disabled=true;
+  inputEl.value=''; grow();
+
+  history.push({role:'user', content:text});
+  write(HIS, history);
+  tipOff();
+  bubble('user', text);
+
+  var row=document.createElement('div');
+  row.className='row ai';
+  var col=document.createElement('div');
+  col.style.maxWidth='84%';
+  var thinkEl=document.createElement('div');
+  thinkEl.className='think';
+  thinkEl.style.display='none';
+  var bEl=document.createElement('div');
+  bEl.className='bubble';
+  col.appendChild(thinkEl);
+  col.appendChild(bEl);
+  row.appendChild(col);
+  listEl.appendChild(row);
+
+  var answer='', think='';
+
+  try{
+    var res=await fetch(cfg.endpoint, {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':'Bearer ' + cfg.key
+      },
+      body:JSON.stringify({
+        model:cfg.model,
+        messages:history.map(function(m){ return {role:m.role, content:m.content} }),
+        stream:true
+      })
+    });
+
+    if(!res.ok){
+      var t=await res.text();
+      throw new Error('接口回话 ' + res.status + '：' + t.slice(0,180));
+    }
+
+    var reader=res.body.getReader();
+    var dec=new TextDecoder();
+    var buf='';
+
+    while(true){
+      var step=await reader.read();
+      if(step.done) break;
+      buf += dec.decode(step.value, {stream:true});
+      var lines=buf.split('\n');
+      buf=lines.pop();
+      for(var i=0;i<lines.length;i++){
+        var line=lines[i].trim();
+        if(line.indexOf('data:')!==0) continue;
+        var data=line.slice(5).trim();
+        if(!data || data==='[DONE]') continue;
+        var j;
+        try{ j=JSON.parse(data) }catch(e){ continue }
+        var d=(j.choices && j.choices[0] && j.choices[0].delta) || {};
+        if(d.reasoning_content){
+          think += d.reasoning_content;
+          thinkEl.style.display='block';
+          thinkEl.textContent=think;
+        }
+        if(d.content){
+          answer += d.content;
+          bEl.textContent=answer;
+        }
+      }
+      toEnd();
+    }
+  }catch(err){
+    var e=document.createElement('div');
+    e.className='err';
+    e.textContent='没接上：' + (err && err.message ? err.message : err);
+    col.appendChild(e);
+  }
+
+  if(!answer) answer='（这句没接上，你看看设置里的地址和钥匙）';
+  if(!bEl.textContent.trim()) bEl.textContent=answer;
+  history.push({role:'assistant', content:answer});
+  write(HIS, history);
+
+  busy=false; sendEl.disabled=false;
+  toEnd();
+}
+
+function openSheet(){
+  fEndpoint.value=cfg.endpoint;
+  fModel.value=cfg.model;
+  fKey.value=cfg.key;
+  sheetEl.classList.add('on');
+}
+
+function closeSheet(){ sheetEl.classList.remove('on') }
+
+function save(){
+  cfg.endpoint=fEndpoint.value.trim() || 'https://api.deepseek.com/chat/completions';
+  cfg.model=fModel.value.trim() || 'deepseek-chat';
+  cfg.key=fKey.value.trim();
+  write(CFG, cfg);
+  closeSheet();
+}
+
+document.getElementById('send').addEventListener('click', send);
+document.getElementById('set').addEventListener('click', openSheet);
+document.getElementById('save').addEventListener('click', save);
+document.getElementById('cancel').addEventListener('click', closeSheet);
+document.getElementById('clear').addEventListener('click', function(){
+  if(!history.length) return;
+  if(confirm('这段对话就清掉了，确定？')){
+    history=[];
+    write(HIS, history);
+    draw();
+  }
+});
+sheetEl.addEventListener('click', function(e){ if(e.target===sheetEl) closeSheet() });
+inputEl.addEventListener('input', grow);
+inputEl.addEventListener('keydown', function(e){
+  if(e.key==='Enter' && !e.shiftKey && !e.isComposing){
+    e.preventDefault();
+    send();
+  }
+});
+
+draw();
+if(!cfg.key) openSheet();
+</script>
+</body>
+</html>
